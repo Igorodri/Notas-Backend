@@ -100,23 +100,18 @@ def excluir_all():
     
 
         
-    
-
 @app.route('/editar')
 def editar_dados():
     return 0;
-
-
-
-
 
 
 @app.route('/favicon.ico')
 def favico():
     return "", 204;
 
+
 if __name__ == "__main__":
-    app.run(debug=True);
+    app.run();
     
         
 
