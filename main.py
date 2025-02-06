@@ -1,7 +1,7 @@
 from flask import Flask, render_template, jsonify, request, send_from_directory
 import pymysql
 
-app = Flask(__name__, static_folder="../notas-frontend/static", template_folder="../notas-frontend/templates");
+app = Flask(__name__, static_folder="../Notas-Frontend/static", template_folder="../Notas-Frontend/templates");
 
 conexao = pymysql.connect(
     host='127.0.0.1',
@@ -81,6 +81,25 @@ def excluir_dados():
         return jsonify({'Erro': 'Erro na exclusão dos dados'}),500
     finally:
         cursor.close()
+
+
+@app.route('/excluir_all', methods=['DELETE'])
+def excluir_all():
+    try:
+        cursor = conexao.cursor();
+        cursor.execute('TRUNCATE TABLE NOTAS_GERAIS');
+        conexao.commit();
+        cursor.close();
+
+        return jsonify({'mensagem': 'Todos os registros foram deletados com sucesso!'});
+
+    except Exception as e:
+        return jsonify({'Erro': 'Erro na exclusão dos dados'}),500
+    finally:
+        cursor.close()
+    
+
+        
     
 
 @app.route('/editar')
