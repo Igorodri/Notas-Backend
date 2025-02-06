@@ -1,7 +1,7 @@
 from flask import Flask, render_template, jsonify, request, send_from_directory
 import pymysql
 
-app = Flask(__name__, static_folder="../Notas-Frontend/static", template_folder="../Notas-Frontend/templates");
+app = Flask(__name__, static_folder="../Notas-Frontend/static", template_folder="../Notas-Frontend");
 
 conexao = pymysql.connect(
     host='127.0.0.1',
