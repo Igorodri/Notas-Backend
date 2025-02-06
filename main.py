@@ -6,11 +6,10 @@ from dotenv import load_dotenv
 from sqlalchemy.sql import func
 from sqlalchemy.exc import SQLAlchemyError
 
-<<<<<<< HEAD
 load_dotenv();
-=======
+
 app = Flask(__name__, static_folder="../Notas-Frontend/static", template_folder="../Notas-Frontend");
->>>>>>> 957ebec4f31792411add2f7078be9f5cacb4eb23
+
 
 app = Flask(__name__, static_folder="../Notas-Frontend/static", template_folder="../Notas-Frontend")
 
@@ -102,13 +101,12 @@ def excluir_all():
         db.session.rollback()
         return jsonify({'erro': str(e)}), 500
 
-<<<<<<< HEAD
 
 @app.route('/editar', methods=['PUT'])
-=======
+
         
 @app.route('/editar')
->>>>>>> 957ebec4f31792411add2f7078be9f5cacb4eb23
+
 def editar_dados():
     try:
         registro = request.get_json()
@@ -116,7 +114,7 @@ def editar_dados():
         titulo = registro.get('titulo')
         descricao = registro.get('descricao')
 
-<<<<<<< HEAD
+
         if not id_nota or not titulo or not descricao:
             return jsonify({'erro': 'Todos os campos são obrigatórios'}), 400
 
@@ -134,8 +132,6 @@ def editar_dados():
         return jsonify({'erro': str(e)}), 500
 
 
-=======
->>>>>>> 957ebec4f31792411add2f7078be9f5cacb4eb23
 @app.route('/favicon.ico')
 def favicon():
     return "", 204
@@ -143,14 +139,13 @@ def favicon():
 
 
 if __name__ == "__main__":
-<<<<<<< HEAD
+
     with app.app_context():
         db.create_all()  
     app.run(debug=True)
-=======
+
     app.run();
     
         
 
 
->>>>>>> 957ebec4f31792411add2f7078be9f5cacb4eb23
