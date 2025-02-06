@@ -1,123 +1,135 @@
-from flask import Flask, render_template, jsonify, request, send_from_directory
-import pymysql
+import os
+from flask import Flask, jsonify, request, send_from_directory
+from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+from dotenv import load_dotenv
+from sqlalchemy.sql import func
+from sqlalchemy.exc import SQLAlchemyError
 
-app = Flask(__name__, static_folder="../Notas-Frontend/static", template_folder="../Notas-Frontend/templates");
+load_dotenv();
 
-conexao = pymysql.connect(
-    host='127.0.0.1',
-    database='notas',
-    port=3306,
-    user='root',
-    password=''
-)
+app = Flask(__name__, static_folder="../Notas-Frontend/static", template_folder="../Notas-Frontend")
 
-print("Conexão com o banco de dados realizada com sucesso!");
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+CORS(app, origins = ["https://notas-frontend-tau.vercel.app"])
+
+print("Conexão com o banco de dados realizada com sucesso!")
+
+
+class Nota(db.Model):
+    __tablename__ = 'NOTAS_GERAIS'
+    id = db.Column(db.Integer, primary_key=True)
+    titulo = db.Column(db.String(255), nullable=False)
+    descricao = db.Column(db.Text, nullable=False)
+    data_criacao = db.Column(db.DateTime, nullable=False)
+
 
 @app.route('/')
 def home():
-    page = send_from_directory(app.template_folder, "index.html")
-    return page;
+    return send_from_directory(app.template_folder, "index.html")
+
 
 @app.route('/notas')
 def select():
-    cursor = conexao.cursor()
-
     try:
-        
-        cursor.execute("SELECT * FROM NOTAS_GERAIS")
-        notas = cursor.fetchall()  
-
-        lista_notas = [{"id": nota[0], "titulo": nota[1], "descricao": nota[2], "data": nota[3]} for nota in notas]
+        notas = Nota.query.all()
+        lista_notas = [{"id": nota.id, "titulo": nota.titulo, "descricao": nota.descricao, "data": nota.data_criacao} for nota in notas]
 
         return jsonify(lista_notas)
-    except Exception as e:
-        return jsonify({"erro": str(e)})
-    finally:
-        cursor.close()  
-
-
+    except SQLAlchemyError as e:
+        return jsonify({"erro": str(e)}), 500
 
 
 @app.route('/registrar', methods=['POST'])
 def registrar():
     try:
-        registro = request.get_json()  
+        registro = request.get_json()
         titulo = registro.get('titulo')
         descricao = registro.get('descricao')
 
         if not titulo or not descricao:
             return jsonify({'erro': 'Título e descrição são obrigatórios'}), 400
 
-        cursor = conexao.cursor()  
-        cursor.execute("INSERT INTO NOTAS_GERAIS (titulo, descricao, data_criacao) VALUES (%s, %s, NOW())", (titulo, descricao))
-        conexao.commit()
+        nova_nota = Nota(titulo=titulo, descricao=descricao, data_criacao=db.func.now())
+        db.session.add(nova_nota)
+        db.session.commit()
 
-        return jsonify({'mensagem': 'Dados registrados com sucesso'}), 201 
+        return jsonify({'mensagem': 'Dados registrados com sucesso'}), 201
 
-    except Exception as e:
-        return jsonify({'erro': 'Erro ao registrar dados'}), 500  
-    finally:
-        cursor.close()
-  
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
 
 
 @app.route('/excluir', methods=['DELETE'])
 def excluir_dados():
     try:
-        registro = request.get_json();
-        id = registro.get('id');
+        registro = request.get_json()
+        id_nota = registro.get('id')
 
-        if not id:
-            return jsonify({'erro': 'Preencha o campo'});
+        if not id_nota:
+            return jsonify({'erro': 'Preencha o campo'}), 400
 
-        cursor = conexao.cursor();
-        cursor.execute('DELETE FROM NOTAS_GERAIS WHERE ID = %s', (id));
-        conexao.commit();
-        cursor.close();
+        nota = Nota.query.get(id_nota)
+        if nota:
+            db.session.delete(nota)
+            db.session.commit()
+            return jsonify({'mensagem': 'Registro deletado com sucesso!'}), 200
+        else:
+            return jsonify({'erro': 'Nota não encontrada'}), 404
 
-        return jsonify({'mensagem': 'Registros deletados com sucesso!'});
-
-    except Exception as e:
-        return jsonify({'Erro': 'Erro na exclusão dos dados'}),500
-    finally:
-        cursor.close()
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
 
 
 @app.route('/excluir_all', methods=['DELETE'])
 def excluir_all():
     try:
-        cursor = conexao.cursor();
-        cursor.execute('TRUNCATE TABLE NOTAS_GERAIS');
-        conexao.commit();
-        cursor.close();
+        db.session.query(Nota).delete()
+        db.session.commit()
 
-        return jsonify({'mensagem': 'Todos os registros foram deletados com sucesso!'});
+        return jsonify({'mensagem': 'Todos os registros foram deletados com sucesso!'}), 200
 
-    except Exception as e:
-        return jsonify({'Erro': 'Erro na exclusão dos dados'}),500
-    finally:
-        cursor.close()
-    
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
 
-        
-    
 
-@app.route('/editar')
+@app.route('/editar', methods=['PUT'])
 def editar_dados():
-    return 0;
+    try:
+        registro = request.get_json()
+        id_nota = registro.get('id')
+        titulo = registro.get('titulo')
+        descricao = registro.get('descricao')
 
+        if not id_nota or not titulo or not descricao:
+            return jsonify({'erro': 'Todos os campos são obrigatórios'}), 400
 
+        nota = Nota.query.get(id_nota)
+        if nota:
+            nota.titulo = titulo
+            nota.descricao = descricao
+            db.session.commit()
+            return jsonify({'mensagem': 'Registro atualizado com sucesso!'}), 200
+        else:
+            return jsonify({'erro': 'Nota não encontrada'}), 404
 
-
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
 
 
 @app.route('/favicon.ico')
-def favico():
-    return "", 204;
+def favicon():
+    return "", 204
+
 
 if __name__ == "__main__":
-    app.run(debug=True);
-    
-        
-
-
+    with app.app_context():
+        db.create_all()  
+    app.run(debug=True)
