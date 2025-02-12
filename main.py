@@ -119,9 +119,10 @@ def editar_dados():
 
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
-
     finally:
-        cursor.close()
+            cursor.close();
+
+
 
 @app.route('/favicon.ico')
 def favicon():
