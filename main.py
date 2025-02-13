@@ -18,12 +18,15 @@ print("Conexão com o banco de dados realizada com sucesso!")
 def home():
     return send_from_directory(app.template_folder, "index.html")
 
+@app.route('/login')
+def page():
+    return send_from_directory(app.template_folder, "notas.html")
+
 @app.route('/notas')
 def select():
-
-    cursor = conexao.cursor()
-
+    cursor = None;
     try:
+        cursor = conexao.cursor()
         cursor.execute('SELECT * FROM "NOTAS_GERAIS"')
         notas = cursor.fetchall()
         
@@ -36,7 +39,8 @@ def select():
         return jsonify({"erro": str(e)}), 500
 
     finally:
-        cursor.close() 
+        if(cursor):
+            cursor.close() 
 
 @app.route('/registrar', methods=['POST'])
 def registrar():
@@ -59,10 +63,11 @@ def registrar():
         return jsonify({'erro': str(e)}), 500
 
     finally:
-        cursor.close()
+            cursor.close() 
 
 @app.route('/excluir', methods=['DELETE'])
 def excluir_dados():
+    cursor = None;
     try:
         request_data = request.get_json()
         registro_id = request_data.get('id')
@@ -81,10 +86,12 @@ def excluir_dados():
         return jsonify({'erro': str(e)}), 500
 
     finally:
-        cursor.close()
+        if(cursor):
+            cursor.close() 
 
 @app.route('/excluir_all', methods=['DELETE'])
 def excluir_all():
+    cursor = None;
     try:
         cursor = conexao.cursor()
 
@@ -97,10 +104,12 @@ def excluir_all():
         return jsonify({'erro': str(e)})
 
     finally:
-        cursor.close()
+        if(cursor):
+            cursor.close() 
 
 @app.route('/editar', methods=['PUT'])
 def editar_dados():
+    cursor = None;
     try:
         request_data = request.get_json()
         edit_id = request_data.get('id')
@@ -120,8 +129,61 @@ def editar_dados():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
     finally:
-            cursor.close();
+        if(cursor):
+            cursor.close() 
 
+@app.route('/cadastrar', methods=['POST'])
+def cadastrar_usuario():
+    cursor = None;
+    try:
+        request_data = request.get_json();
+        nome_usuario = request_data.get('nome_usuario');
+        senha_usuario = request_data.get('senha_usuario');
+
+        if not nome_usuario or not senha_usuario:
+            return jsonify ({'erro': 'Nome e senha de usuário obrigatórios.'})
+
+        cursor = conexao.cursor()
+
+        cursor.execute('INSERT INTO "USUARIOS" (nome_usuario, senha_usuario) VALUES (%s, %s)', (nome_usuario, senha_usuario))
+        conexao.commit();
+
+        return jsonify({'mensagem': 'Usuário criado com sucesso!'}), 201
+    
+    except Exception as e:
+        conexao.rollback();
+        return jsonify ({'erro': str(e)}),500
+    finally:
+        if(cursor):
+            cursor.close() 
+
+@app.route('/autenticar', methods=['POST'])
+def buscar_usuario():
+    cursor = None 
+    try:
+        request_data = request.get_json()
+        nome_usuario = request_data.get('nome_usuario')
+        senha_usuario = request_data.get('senha_usuario')
+
+        if not nome_usuario or not senha_usuario:
+            return jsonify({'erro': 'Nome e senha são obrigatórios'}), 400
+
+        cursor = conexao.cursor()
+        cursor.execute('SELECT id FROM "USUARIOS" WHERE nome_usuario = %s AND senha_usuario = %s', 
+                       (nome_usuario, senha_usuario))
+        usuario = cursor.fetchone()
+
+        if usuario:
+            return jsonify({'mensagem': 'Login bem-sucedido!', 'id_usuario': usuario[0]}), 200
+        else:
+            return jsonify({'erro': 'Usuário ou senha incorretos'}), 401
+
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+    finally:
+        if cursor:
+            cursor.close()  
 
 
 @app.route('/favicon.ico')
