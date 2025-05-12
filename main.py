@@ -1,20 +1,17 @@
 from flask import Flask, jsonify, request, redirect,session
-from flask_session import Session
 from flask_cors import CORS
+from dotenv import load_dotenv
 import psycopg2
+import os
+
+load_dotenv();
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
-app.config['SECRET_KEY'] = 'testenotas'  
-app.config['SESSION_TYPE'] = 'filesystem'  
-app.config['SESSION_PERMANENT'] = False  
-app.config['SESSION_USE_SIGNER'] = True  
+DB_URL = os.getenv('DATABASE_URL')
 
-Session(app);
-
-DATABASE_URL = "postgresql://neondb_owner:npg_HA3pm7QItTkd@ep-aged-cell-a5ztp2ol.us-east-2.aws.neon.tech/neondb?sslmode=require"
-
-conexao = psycopg2.connect(DATABASE_URL)
+conexao = psycopg2.connect(DB_URL)
 
 CORS(app);
 
@@ -50,8 +47,6 @@ def registrar():
     conn = None
     cursor = None
     try:
-        print(session)
-
         registro = request.get_json()
         titulo = registro.get('titulo')
         descricao = registro.get('descricao')
